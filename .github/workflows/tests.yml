@@ -1,0 +1,66 @@
+name: Verificações do Afiliados V2
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  testes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - run: npm test
+      - run: npm audit --omit=dev --audit-level=high
+  docker-postgres:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: afiliados
+          POSTGRES_PASSWORD: ci-only-password
+          POSTGRES_DB: afiliados
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U afiliados -d afiliados"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      ADMIN_USER: ci-admin
+      ADMIN_PASSWORD: ci-only-admin-password
+      PUBLIC_BASE_URL: http://127.0.0.1:3000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validar Compose
+        run: docker compose config --quiet
+        env:
+          POSTGRES_PASSWORD: ci-only-password
+          SESSION_SECRET: ci-only-session-secret
+      - name: Construir imagem de produção
+        run: docker build --tag afiliados-v2:ci .
+      - name: Iniciar imagem com PostgreSQL real
+        run: >-
+          docker run --detach --name afiliados-ci --network host
+          --env DATABASE_URL=postgresql://afiliados:ci-only-password@127.0.0.1:5432/afiliados
+          --env ADMIN_USER --env ADMIN_PASSWORD --env PUBLIC_BASE_URL
+          --env SESSION_SECRET=ci-only-session-secret afiliados-v2:ci
+      - name: Verificar catálogo, login e painel
+        run: node scripts/smoke.mjs
+      - name: Logs do aplicativo
+        if: failure()
+        run: docker logs afiliados-ci

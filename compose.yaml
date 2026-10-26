@@ -1,0 +1,44 @@
+name: afiliados-v2
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: afiliados
+      POSTGRES_USER: afiliados
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no .env}
+      TZ: America/Sao_Paulo
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U afiliados -d afiliados']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://afiliados:${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no .env}@db:5432/afiliados
+      NODE_ENV: production
+      PORT: 3000
+      TZ: America/Sao_Paulo
+      ADMIN_USER: ${ADMIN_USER:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Defina ADMIN_PASSWORD no .env}
+      SESSION_SECRET: ${SESSION_SECRET:?Defina SESSION_SECRET no .env}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:?Defina PUBLIC_BASE_URL no .env}
+      MESSAGE_LINK_MODE: ${MESSAGE_LINK_MODE:-affiliate}
+      UPLOAD_DIR: /data/products
+      WAHA_KEY_FILE: /data/secrets/waha.key
+    ports:
+      - '127.0.0.1:${PORT:-3000}:3000'
+    volumes:
+      - product-images:/data/products
+      - waha-secrets:/data/secrets
+volumes:
+  postgres-data:
+  product-images:
+  waha-secrets:

@@ -1,0 +1,24 @@
+{
+  "name": "afiliados-v2",
+  "version": "2.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test whatsapp-invite.test.js rotation.test.js waha-groups.test.js waha-settings.test.js dispatch.test.js adaptive-schedule.test.js group-rotation.test.js waha-connections.test.js dispatch-window.test.js history-clear.test.js login-auth.test.js brand-settings.test.js docker-packaging.test.js round-robin-regression.test.js catalog-cycle.test.js catalog-queue.test.js global-cycle.test.js click-tracking.test.js sidebar-nav.test.js ui-themes.test.js interface.test.js group-photos.test.js",
+    "check": "node scripts/check.mjs",
+    "test:smoke": "node scripts/smoke.mjs"
+  },
+  "dependencies": {
+    "busboy": "^1.6.0",
+    "pg": "^8.13.1",
+    "sharp": "^0.35.5"
+  },
+  "description": "Central de Afiliados com catálogo, painel administrativo e integração WAHA",
+  "engines": {
+    "node": ">=22 <25"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/LuizOMS-Dev/Afiliados-V2.git"
+  }
+}
